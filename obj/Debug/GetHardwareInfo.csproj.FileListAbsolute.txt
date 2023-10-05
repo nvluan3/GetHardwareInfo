@@ -1,0 +1,10 @@
+D:\nvluan3\C#\GetHardwareInfo\bin\Debug\GetHardwareInfo.exe.config
+D:\nvluan3\C#\GetHardwareInfo\bin\Debug\GetHardwareInfo.exe
+D:\nvluan3\C#\GetHardwareInfo\bin\Debug\GetHardwareInfo.pdb
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.csproj.AssemblyReference.cache
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.frmMain.resources
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.Properties.Resources.resources
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.csproj.GenerateResource.cache
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.csproj.CoreCompileInputs.cache
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.exe
+D:\nvluan3\C#\GetHardwareInfo\obj\Debug\GetHardwareInfo.pdb
