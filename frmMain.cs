@@ -8,6 +8,7 @@ using System.Net.NetworkInformation;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
+using System.Reflection;
 
 namespace GetHardwareInfo
 {
@@ -92,15 +93,29 @@ namespace GetHardwareInfo
                 {
                     if (queryObj["DriveType"].ToString() == "3")
                     {
+                        
                         string driveName = queryObj["Name"].ToString();
+                        
                         ulong driveSize = Convert.ToUInt64(queryObj["Size"]);
                         ulong freeSpace = Convert.ToUInt64(queryObj["FreeSpace"]);
                         string totalSize = FormatSize(driveSize);
                         string availableSpace = FormatSize(freeSpace);
                         richTextBox1.Text += $"Drive: {driveName} | Total Size: {totalSize} | Available Space: {availableSpace}" + Environment.NewLine;
                     }
+                    
                 }
 
+                ManagementObjectSearcher searcher7 = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
+                richTextBox1.Text += "List Hard Disk: " + Environment.NewLine;
+                foreach (ManagementObject info in searcher7.Get())
+                {
+                    string model = info["Model"].ToString();
+                    //string Interface = info["InterfaceType"].ToString();
+                    string serial =  info["SerialNumber"].ToString();
+                    //string mediatype = info["MediaType"].ToString();
+                    string size = FormatSize(Convert.ToUInt64(info["Size"])).ToString();
+                    richTextBox1.Text += $"Model: {model} | Serial: {serial} | Size: {size}" + Environment.NewLine;
+                }
                 NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
                 NetworkInterface loopbackInterface = interfaces.FirstOrDefault(nic => nic.NetworkInterfaceType == NetworkInterfaceType.Loopback);
                 NetworkInterface mainInterface = interfaces.FirstOrDefault(nic => nic != loopbackInterface);
@@ -160,6 +175,13 @@ namespace GetHardwareInfo
             processStartInfo.FileName = "explorer.exe";
             processStartInfo.Arguments = @"/select," + computerName + ".txt";
             Process.Start(processStartInfo);
+        }
+
+        private void button2_Click(object sender, EventArgs e)
+        {
+            richTextBox1.Focus();
+            richTextBox1.SelectAll();
+            richTextBox1.Copy();
         }
     }
 }

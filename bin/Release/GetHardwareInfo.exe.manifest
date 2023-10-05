@@ -43,14 +43,14 @@
     </dependentAssembly>
   </dependency>
   <dependency>
-    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="GetHardwareInfo.exe" size="20448">
+    <dependentAssembly dependencyType="install" allowDelayedBinding="true" codebase="GetHardwareInfo.exe" size="21472">
       <assemblyIdentity name="GetHardwareInfo" version="1.0.0.0" language="neutral" processorArchitecture="msil" />
       <hash>
         <dsig:Transforms>
           <dsig:Transform Algorithm="urn:schemas-microsoft-com:HashTransforms.Identity" />
         </dsig:Transforms>
         <dsig:DigestMethod Algorithm="http://www.w3.org/2000/09/xmldsig#sha256" />
-        <dsig:DigestValue>KDhnck5BawyvFjpwzyVUPvN2edoRYVPS4ivcdLDRZEo=</dsig:DigestValue>
+        <dsig:DigestValue>8Z4HDcEo+yWAXub0fELJIf4LxziOtlbwhsttpVK+374=</dsig:DigestValue>
       </hash>
     </dependentAssembly>
   </dependency>
