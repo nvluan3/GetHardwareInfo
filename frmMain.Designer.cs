@@ -80,6 +80,7 @@ namespace GetHardwareInfo
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
             this.MaximizeBox = false;
             this.Name = "frmMain";
+            this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "Get Hardware Information";
             this.TopMost = true;
             this.WindowState = System.Windows.Forms.FormWindowState.Maximized;

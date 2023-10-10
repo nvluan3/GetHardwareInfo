@@ -9,6 +9,7 @@ using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
 using System.Reflection;
+using System.Drawing;
 
 namespace GetHardwareInfo
 {
@@ -31,16 +32,41 @@ namespace GetHardwareInfo
                 }
                 computerName = Environment.MachineName;
                 richTextBox1.Text += "System Name: " + computerName + Environment.NewLine;
+
                 ManagementObjectSearcher searcher2 = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
                 foreach (ManagementObject computerSystem in searcher2.Get())
                 {
                     string computerModel = computerSystem["Model"].ToString();
                     richTextBox1.Text += "Model: " + computerModel + Environment.NewLine;
-                    ulong totalPhysicalMemory = (ulong)computerSystem["TotalPhysicalMemory"];
-                    richTextBox1.Text += "Total physical memory: " + FormatSize(totalPhysicalMemory) + Environment.NewLine;
                     string domainOrWorkgroupName = computerSystem["PartOfDomain"].Equals(true) ? computerSystem["Domain"].ToString() : computerSystem["Workgroup"].ToString();
                     richTextBox1.Text += "Member of: " + domainOrWorkgroupName + Environment.NewLine;
                 }
+
+
+                
+
+                ManagementObjectSearcher searcher8 = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
+                foreach (ManagementObject computerSystem in searcher8.Get())
+                {
+                    ulong totalPhysicalMemory = (ulong)computerSystem["TotalPhysicalMemory"];
+                    richTextBox1.Text += "Total physical memory: " + FormatSize(totalPhysicalMemory) + Environment.NewLine;
+
+                }
+                ManagementClass physicalMemoryClass = new ManagementClass("Win32_PhysicalMemory");
+                ManagementObjectCollection physicalMemories = physicalMemoryClass.GetInstances();
+                richTextBox1.Text += "Device Locator | Capacity | Speed" + Environment.NewLine;
+                foreach (ManagementObject physicalMemory in physicalMemories)
+                {
+                    ulong ramCapacity = Convert.ToUInt64(physicalMemory["Capacity"]);
+                    uint ramSpeed = Convert.ToUInt32(physicalMemory["Speed"]);
+                    string ramCapacityString = FormatSize(ramCapacity);
+                    string ramSpeedString = FormatSize(ramSpeed);
+                    string DeviceLocatorString = physicalMemory["DeviceLocator"].ToString();
+                    richTextBox1.Text += DeviceLocatorString + " | " + ramCapacityString + " | " + ramSpeed + Environment.NewLine;
+                }
+
+
+
                 ManagementObjectSearcher searcher3 = new ManagementObjectSearcher("SELECT * FROM Win32_SystemEnclosure");
                 foreach (ManagementObject systemEnclosure in searcher3.Get())
                 {
@@ -68,11 +94,16 @@ namespace GetHardwareInfo
                 ManagementObjectSearcher searcher5 = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
 
                 richTextBox1.Text += "Graphic card name: " + Environment.NewLine;
+                richTextBox1.Text += "Name | AdapterRam" + Environment.NewLine;
                 foreach (ManagementObject videoController in searcher5.Get())
                 {
-                    // Get the graphic card name.
                     string graphicCardName = videoController["Name"].ToString();
-                    richTextBox1.Text += " + " + graphicCardName + Environment.NewLine;
+                    ulong videoMemory = Convert.ToUInt64(videoController["AdapterRam"]);
+
+                    string videoMemoryString = FormatSize(videoMemory);
+                    //videoController["VideoMemoryType"].ToString();
+
+                    richTextBox1.Text += " + " + graphicCardName + " | " + videoMemoryString + " | " + Environment.NewLine;
                 }
                 ManagementObjectSearcher searcher6 = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
                 foreach (ManagementObject processor in searcher6.Get())
@@ -84,43 +115,47 @@ namespace GetHardwareInfo
                 richTextBox1.Text += "System Type: " + systemType + Environment.NewLine;
 
                 string installOSDate = Environment.GetEnvironmentVariable("SystemInstalled");
-             
-            
-                ManagementObjectSearcher searcher9 = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
 
-                richTextBox1.Text += new string('-', 100) + Environment.NewLine;
-                foreach (ManagementObject queryObj in searcher9.Get())
-                {
-                    if (queryObj["DriveType"].ToString() == "3")
-                    {
-                        
-                        string driveName = queryObj["Name"].ToString();
-                        
-                        ulong driveSize = Convert.ToUInt64(queryObj["Size"]);
-                        ulong freeSpace = Convert.ToUInt64(queryObj["FreeSpace"]);
-                        string totalSize = FormatSize(driveSize);
-                        string availableSpace = FormatSize(freeSpace);
-                        richTextBox1.Text += $"Drive: {driveName} | Total Size: {totalSize} | Available Space: {availableSpace}" + Environment.NewLine;
-                    }
-                    
-                }
 
+
+                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
                 ManagementObjectSearcher searcher7 = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
                 richTextBox1.Text += "List Hard Disk: " + Environment.NewLine;
+                richTextBox1.Text += $"Model | Serial | Size" + Environment.NewLine;
                 foreach (ManagementObject info in searcher7.Get())
                 {
                     string model = info["Model"].ToString();
                     //string Interface = info["InterfaceType"].ToString();
-                    string serial =  info["SerialNumber"].ToString();
+                    string serial =  info["SerialNumber"].ToString().Trim();
                     //string mediatype = info["MediaType"].ToString();
                     string size = FormatSize(Convert.ToUInt64(info["Size"])).ToString();
-                    richTextBox1.Text += $"Model: {model} | Serial: {serial} | Size: {size}" + Environment.NewLine;
+                    richTextBox1.Text += model + " | " +  serial + " | " + size + Environment.NewLine;
                 }
+
+                ManagementObjectSearcher searcher9 = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
+
+                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
+
+                richTextBox1.Text += "Drive | Total Size | Available Space" + Environment.NewLine;
+                foreach (ManagementObject queryObj in searcher9.Get())
+                {
+                    if (queryObj["DriveType"].ToString() == "3")
+                    {
+                        string driveName = queryObj["Name"].ToString();
+                        ulong driveSize = Convert.ToUInt64(queryObj["Size"]);
+                        ulong freeSpace = Convert.ToUInt64(queryObj["FreeSpace"]);
+                        string totalSize = FormatSize(driveSize);
+                        string availableSpace = FormatSize(freeSpace);
+                        richTextBox1.Text += driveName + " | " + totalSize + " | " + availableSpace + Environment.NewLine;
+                    }
+
+                }
+
                 NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
                 NetworkInterface loopbackInterface = interfaces.FirstOrDefault(nic => nic.NetworkInterfaceType == NetworkInterfaceType.Loopback);
                 NetworkInterface mainInterface = interfaces.FirstOrDefault(nic => nic != loopbackInterface);
 
-                richTextBox1.Text += new string('-',100) + Environment.NewLine;
+                richTextBox1.Text += new string('-',97) + Environment.NewLine;
                 richTextBox1.Text += "Windows IP Configuration: " + Environment.NewLine;
                 IPInterfaceProperties ipProperties = mainInterface.GetIPProperties();
                 
