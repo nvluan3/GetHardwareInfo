@@ -43,7 +43,7 @@ namespace GetHardwareInfo
                 }
 
 
-                
+
 
                 ManagementObjectSearcher searcher8 = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
                 foreach (ManagementObject computerSystem in searcher8.Get())
@@ -126,10 +126,10 @@ namespace GetHardwareInfo
                 {
                     string model = info["Model"].ToString();
                     //string Interface = info["InterfaceType"].ToString();
-                    string serial =  info["SerialNumber"].ToString().Trim();
+                    string serial = info["SerialNumber"].ToString().Trim();
                     //string mediatype = info["MediaType"].ToString();
                     string size = FormatSize(Convert.ToUInt64(info["Size"])).ToString();
-                    richTextBox1.Text += model + " | " +  serial + " | " + size + Environment.NewLine;
+                    richTextBox1.Text += model + " | " + serial + " | " + size + Environment.NewLine;
                 }
 
                 ManagementObjectSearcher searcher9 = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
@@ -155,10 +155,10 @@ namespace GetHardwareInfo
                 NetworkInterface loopbackInterface = interfaces.FirstOrDefault(nic => nic.NetworkInterfaceType == NetworkInterfaceType.Loopback);
                 NetworkInterface mainInterface = interfaces.FirstOrDefault(nic => nic != loopbackInterface);
 
-                richTextBox1.Text += new string('-',97) + Environment.NewLine;
+                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
                 richTextBox1.Text += "Windows IP Configuration: " + Environment.NewLine;
                 IPInterfaceProperties ipProperties = mainInterface.GetIPProperties();
-                
+
                 string output = Regex.Replace(mainInterface.GetPhysicalAddress().ToString(), "(..)", "$1-");
                 output = output.TrimEnd('-');
 
@@ -169,14 +169,14 @@ namespace GetHardwareInfo
                     {
                         richTextBox1.Text += "IPv4 Address: " + ip.Address.ToString() + Environment.NewLine;
                         richTextBox1.Text += "Subnet Mask: " + ip.IPv4Mask.ToString() + Environment.NewLine;
-                        
+
                     }
                 }
                 foreach (GatewayIPAddressInformation gateway in ipProperties.GatewayAddresses)
                 {
                     richTextBox1.Text += "Default Gateway: " + gateway.Address.ToString() + Environment.NewLine;
                 }
-       
+
                 var dnsAddresses = ipProperties.DnsAddresses;
                 richTextBox1.Text += "DNS address: " + Environment.NewLine;
                 // Display the DNS addresses for the network interface.
@@ -184,8 +184,10 @@ namespace GetHardwareInfo
                 {
                     richTextBox1.Text += " + " + dnsAddress + Environment.NewLine;
                 }
-}
-            catch(Exception ex) {
+                File.WriteAllText(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), computerName + ".txt"), richTextBox1.Text.Trim());
+            }
+            catch (Exception ex)
+            {
                 MessageBox.Show(ex.Message);
             }
         }
@@ -205,7 +207,7 @@ namespace GetHardwareInfo
         }
         private void button1_Click(object sender, EventArgs e)
         {
-            File.WriteAllText(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), computerName + ".txt"), richTextBox1.Text.Trim());
+
             ProcessStartInfo processStartInfo = new ProcessStartInfo();
             processStartInfo.FileName = "explorer.exe";
             processStartInfo.Arguments = @"/select," + computerName + ".txt";
