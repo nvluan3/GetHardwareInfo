@@ -8,8 +8,9 @@ using System.Net.NetworkInformation;
 using System.Linq;
 using System.Net;
 using System.Text.RegularExpressions;
-using System.Reflection;
 using System.Drawing;
+using System.Text;
+using System.Collections.Generic;
 
 namespace GetHardwareInfo
 {
@@ -19,178 +20,208 @@ namespace GetHardwareInfo
         {
             InitializeComponent();
         }
-        string computerName;
+
+        private string computerName;
+        private string userName;
+        private string ipAddress;
+
         private void frmMain_Load(object sender, EventArgs e)
         {
             try
             {
-                ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_BIOS");
-                foreach (ManagementObject bios in searcher.Get())
-                {
-                    string serialNumber = bios["SerialNumber"].ToString();
-                    richTextBox1.Text = "Serial Number: " + serialNumber + Environment.NewLine;
-                }
+                // Header Info
                 computerName = Environment.MachineName;
-                richTextBox1.Text += "System Name: " + computerName + Environment.NewLine;
+                userName = Environment.UserName;
+                ipAddress = GetLocalIPAddress();
+                lblSubHeader.Text = $"{computerName} | {userName} | {ipAddress}";
 
-                ManagementObjectSearcher searcher2 = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
-                foreach (ManagementObject computerSystem in searcher2.Get())
-                {
-                    string computerModel = computerSystem["Model"].ToString();
-                    richTextBox1.Text += "Model: " + computerModel + Environment.NewLine;
-                    string domainOrWorkgroupName = computerSystem["PartOfDomain"].Equals(true) ? computerSystem["Domain"].ToString() : computerSystem["Workgroup"].ToString();
-                    richTextBox1.Text += "Member of: " + domainOrWorkgroupName + Environment.NewLine;
-                }
+                // Machine Info
+                GetMachineInfo();
 
+                // CPU
+                GetCPUInfo();
 
+                // GPU
+                GetGPUInfo();
 
+                // RAM
+                GetRAMInfo();
 
-                ManagementObjectSearcher searcher8 = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
-                foreach (ManagementObject computerSystem in searcher8.Get())
-                {
-                    ulong totalPhysicalMemory = (ulong)computerSystem["TotalPhysicalMemory"];
-                    richTextBox1.Text += "Total physical memory: " + FormatSize(totalPhysicalMemory) + Environment.NewLine;
-
-                }
-                ManagementClass physicalMemoryClass = new ManagementClass("Win32_PhysicalMemory");
-                ManagementObjectCollection physicalMemories = physicalMemoryClass.GetInstances();
-                richTextBox1.Text += "Device Locator | Capacity | Speed" + Environment.NewLine;
-                foreach (ManagementObject physicalMemory in physicalMemories)
-                {
-                    ulong ramCapacity = Convert.ToUInt64(physicalMemory["Capacity"]);
-                    uint ramSpeed = Convert.ToUInt32(physicalMemory["Speed"]);
-                    string ramCapacityString = FormatSize(ramCapacity);
-                    string ramSpeedString = FormatSize(ramSpeed);
-                    string DeviceLocatorString = physicalMemory["DeviceLocator"].ToString();
-                    richTextBox1.Text += DeviceLocatorString + " | " + ramCapacityString + " | " + ramSpeed + Environment.NewLine;
-                }
-
-
-
-                ManagementObjectSearcher searcher3 = new ManagementObjectSearcher("SELECT * FROM Win32_SystemEnclosure");
-                foreach (ManagementObject systemEnclosure in searcher3.Get())
-                {
-                    string manufacturer = systemEnclosure["Manufacturer"].ToString();
-                    richTextBox1.Text += "Manufacturer: " + manufacturer + Environment.NewLine;
-                }
-                ManagementObjectSearcher searcher4 = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem");
-                foreach (ManagementObject operatingSystem in searcher4.Get())
-                {
-                    string operatingSystemName = operatingSystem["Caption"].ToString();
-                    richTextBox1.Text += "Operating System: " + operatingSystemName + Environment.NewLine;
-                    string installDate = operatingSystem["InstallDate"].ToString();
-                    string datePart = installDate.Substring(0, 8);
-                    DateTime date = DateTime.ParseExact(datePart, "yyyyMMdd", CultureInfo.InvariantCulture);
-                    string formattedDate = date.ToString("dd/MM/yyyy");
-                    string hourString = installDate.Substring(0, 2);
-                    string minuteString = installDate.Substring(2, 2);
-                    string secondString = installDate.Substring(4, 2);
-                    int hour = int.Parse(hourString);
-                    int minute = int.Parse(minuteString);
-                    int second = int.Parse(secondString);
-                    string formattedTime = $"{hour:00}:{minute:00}:{second:00}";
-                    richTextBox1.Text += "Original Install Date: " + formattedDate + " " + formattedTime + Environment.NewLine;
-                }
-                ManagementObjectSearcher searcher5 = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
-
-                richTextBox1.Text += "Graphic card name: " + Environment.NewLine;
-                richTextBox1.Text += "Name | AdapterRam" + Environment.NewLine;
-                foreach (ManagementObject videoController in searcher5.Get())
-                {
-                    string graphicCardName = videoController["Name"].ToString();
-                    ulong videoMemory = Convert.ToUInt64(videoController["AdapterRam"]);
-
-                    string videoMemoryString = FormatSize(videoMemory);
-                    //videoController["VideoMemoryType"].ToString();
-
-                    richTextBox1.Text += " + " + graphicCardName + " | " + videoMemoryString + " | " + Environment.NewLine;
-                }
-                ManagementObjectSearcher searcher6 = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
-                foreach (ManagementObject processor in searcher6.Get())
-                {
-                    string cpuName = processor["Name"].ToString();
-                    richTextBox1.Text += $"CPU name: {cpuName}" + Environment.NewLine;
-                }
-                string systemType = Environment.Is64BitProcess ? "64-bit" : "32-bit";
-                richTextBox1.Text += "System Type: " + systemType + Environment.NewLine;
-
-                string installOSDate = Environment.GetEnvironmentVariable("SystemInstalled");
-
-
-
-                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
-                ManagementObjectSearcher searcher7 = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
-                richTextBox1.Text += "List Hard Disk: " + Environment.NewLine;
-                richTextBox1.Text += $"Model | Serial | Size" + Environment.NewLine;
-                foreach (ManagementObject info in searcher7.Get())
-                {
-                    string model = info["Model"].ToString();
-                    //string Interface = info["InterfaceType"].ToString();
-                    string serial = info["SerialNumber"].ToString().Trim();
-                    //string mediatype = info["MediaType"].ToString();
-                    string size = FormatSize(Convert.ToUInt64(info["Size"])).ToString();
-                    richTextBox1.Text += model + " | " + serial + " | " + size + Environment.NewLine;
-                }
-
-                ManagementObjectSearcher searcher9 = new ManagementObjectSearcher("SELECT * FROM Win32_LogicalDisk");
-
-                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
-
-                richTextBox1.Text += "Drive | Total Size | Available Space" + Environment.NewLine;
-                foreach (ManagementObject queryObj in searcher9.Get())
-                {
-                    if (queryObj["DriveType"].ToString() == "3")
-                    {
-                        string driveName = queryObj["Name"].ToString();
-                        ulong driveSize = Convert.ToUInt64(queryObj["Size"]);
-                        ulong freeSpace = Convert.ToUInt64(queryObj["FreeSpace"]);
-                        string totalSize = FormatSize(driveSize);
-                        string availableSpace = FormatSize(freeSpace);
-                        richTextBox1.Text += driveName + " | " + totalSize + " | " + availableSpace + Environment.NewLine;
-                    }
-
-                }
-
-                NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
-                NetworkInterface loopbackInterface = interfaces.FirstOrDefault(nic => nic.NetworkInterfaceType == NetworkInterfaceType.Loopback);
-                NetworkInterface mainInterface = interfaces.FirstOrDefault(nic => nic != loopbackInterface);
-
-                richTextBox1.Text += new string('-', 97) + Environment.NewLine;
-                richTextBox1.Text += "Windows IP Configuration: " + Environment.NewLine;
-                IPInterfaceProperties ipProperties = mainInterface.GetIPProperties();
-
-                string output = Regex.Replace(mainInterface.GetPhysicalAddress().ToString(), "(..)", "$1-");
-                output = output.TrimEnd('-');
-
-                richTextBox1.Text += "Physical Address: " + output + Environment.NewLine;
-                foreach (UnicastIPAddressInformation ip in ipProperties.UnicastAddresses)
-                {
-                    if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
-                    {
-                        richTextBox1.Text += "IPv4 Address: " + ip.Address.ToString() + Environment.NewLine;
-                        richTextBox1.Text += "Subnet Mask: " + ip.IPv4Mask.ToString() + Environment.NewLine;
-
-                    }
-                }
-                foreach (GatewayIPAddressInformation gateway in ipProperties.GatewayAddresses)
-                {
-                    richTextBox1.Text += "Default Gateway: " + gateway.Address.ToString() + Environment.NewLine;
-                }
-
-                var dnsAddresses = ipProperties.DnsAddresses;
-                richTextBox1.Text += "DNS address: " + Environment.NewLine;
-                // Display the DNS addresses for the network interface.
-                foreach (IPAddress dnsAddress in dnsAddresses)
-                {
-                    richTextBox1.Text += " + " + dnsAddress + Environment.NewLine;
-                }
-                File.WriteAllText(Path.Combine(Path.GetDirectoryName(System.Windows.Forms.Application.ExecutablePath), computerName + ".txt"), richTextBox1.Text.Trim());
+                // Storage
+                GetStorageInfo();
             }
             catch (Exception ex)
             {
-                MessageBox.Show(ex.Message);
+                MessageBox.Show("Error loading info: " + ex.Message);
             }
         }
+
+        private string GetLocalIPAddress()
+        {
+            try
+            {
+                NetworkInterface[] interfaces = NetworkInterface.GetAllNetworkInterfaces();
+                NetworkInterface mainInterface = interfaces.FirstOrDefault(nic => 
+                    nic.NetworkInterfaceType != NetworkInterfaceType.Loopback && 
+                    nic.OperationalStatus == OperationalStatus.Up &&
+                    (nic.NetworkInterfaceType == NetworkInterfaceType.Ethernet || nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211));
+
+                if (mainInterface != null)
+                {
+                    IPInterfaceProperties ipProperties = mainInterface.GetIPProperties();
+                    foreach (UnicastIPAddressInformation ip in ipProperties.UnicastAddresses)
+                    {
+                        if (ip.Address.AddressFamily == System.Net.Sockets.AddressFamily.InterNetwork)
+                        {
+                            return ip.Address.ToString();
+                        }
+                    }
+                }
+            }
+            catch { }
+            return "N/A";
+        }
+
+        private void GetMachineInfo()
+        {
+            // Manufacturer & Model
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                lblManufacturerValue.Text = obj["Manufacturer"].ToString();
+                lblModelValue.Text = obj["Model"].ToString();
+            }
+
+            // BIOS & Serial (Service Tag)
+            searcher = new ManagementObjectSearcher("SELECT * FROM Win32_BIOS");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                lblServiceTagValue.Text = obj["SerialNumber"].ToString();
+                lblBIOSValue.Text = obj["Manufacturer"].ToString() + " " + obj["SMBIOSBIOSVersion"].ToString();
+            }
+
+            // OS
+            searcher = new ManagementObjectSearcher("SELECT * FROM Win32_OperatingSystem");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                lblOSValue.Text = obj["Caption"].ToString() + " - Build " + obj["BuildNumber"].ToString();
+            }
+        }
+
+        private void GetCPUInfo()
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_Processor");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                lblCPUName.Text = obj["Name"].ToString();
+                lblCPUCores.Text = $"{obj["NumberOfCores"]} Nhân / {obj["NumberOfLogicalProcessors"]} Luồng";
+            }
+        }
+
+        private void GetGPUInfo()
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_VideoController");
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                string name = obj["Name"].ToString();
+                ulong ram = 0;
+                try { ram = Convert.ToUInt64(obj["AdapterRam"]); } catch { }
+                
+                lblGPUName.Text = $"{name} ({FormatSize(ram)})";
+                // Only get the first one for simplicity or append if multiple
+                break; 
+            }
+        }
+
+        private void GetRAMInfo()
+        {
+            // Total RAM
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_ComputerSystem");
+            ulong totalRam = 0;
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                totalRam = Convert.ToUInt64(obj["TotalPhysicalMemory"]);
+            }
+
+            // RAM Slots
+            ManagementObjectSearcher memSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemory");
+            int stickCount = 0;
+            int yPos = 0;
+            pnlRAMList.Controls.Clear();
+
+            foreach (ManagementObject obj in memSearcher.Get())
+            {
+                stickCount++;
+                ulong capacity = Convert.ToUInt64(obj["Capacity"]);
+                uint speed = Convert.ToUInt32(obj["Speed"]);
+                string devLocator = obj["DeviceLocator"].ToString();
+                string manufacturer = obj["Manufacturer"].ToString();
+
+                Label lbl = new Label();
+                lbl.Text = $"{devLocator}: {FormatSize(capacity)} @ {speed} MHz - {manufacturer}";
+                lbl.AutoSize = true;
+                lbl.Location = new Point(0, yPos);
+                lbl.ForeColor = Color.Green;
+                pnlRAMList.Controls.Add(lbl);
+                yPos += 20;
+            }
+
+            // Max Slots (to calculate free)
+            int maxSlots = 0;
+            try
+            {
+                // Try Win32_MemoryDevice first as it often represents physical slots more accurately
+                ManagementObjectSearcher slotSearcher = new ManagementObjectSearcher("SELECT * FROM Win32_MemoryDevice");
+                maxSlots = slotSearcher.Get().Count;
+
+                // If 0 or unreasonable, fallback to PhysicalMemoryArray
+                if (maxSlots == 0)
+                {
+                    ManagementObjectSearcher arraySearcher = new ManagementObjectSearcher("SELECT * FROM Win32_PhysicalMemoryArray");
+                    foreach (ManagementObject obj in arraySearcher.Get())
+                    {
+                        maxSlots = Convert.ToInt32(obj["MemoryDevices"]);
+                    }
+                }
+            }
+            catch { maxSlots = stickCount; } // Fallback
+
+            // Ensure maxSlots is at least stickCount
+            if (maxSlots < stickCount) maxSlots = stickCount;
+
+            grpRAM.Text = $"Bộ nhớ RAM - Tổng: {FormatSize(totalRam)} ({stickCount}/{maxSlots} khe)";
+            
+            int freeSlots = maxSlots - stickCount;
+            if (freeSlots > 0)
+                lblRAMFree.Text = $">>> Còn trống: {freeSlots} khe (có thể nâng cấp thêm RAM)";
+            else
+                lblRAMFree.Text = ">>> Đã sử dụng hết các khe RAM (Chỉ có thể nâng cấp dung lượng)";
+        }
+
+        private void GetStorageInfo()
+        {
+            ManagementObjectSearcher searcher = new ManagementObjectSearcher("SELECT * FROM Win32_DiskDrive");
+            int count = 0;
+            int yPos = 0;
+            pnlStorageList.Controls.Clear();
+
+            foreach (ManagementObject obj in searcher.Get())
+            {
+                count++;
+                string model = obj["Model"].ToString();
+                string serial = obj["SerialNumber"].ToString().Trim();
+                ulong size = Convert.ToUInt64(obj["Size"]);
+
+                Label lbl = new Label();
+                lbl.Text = $"{model} - {serial} - {FormatSize(size)}";
+                lbl.AutoSize = true;
+                lbl.Location = new Point(0, yPos);
+                pnlStorageList.Controls.Add(lbl);
+                yPos += 20;
+            }
+            grpStorage.Text = $"Ổ lưu trữ ({count} ổ)";
+        }
+
         private string FormatSize(ulong size)
         {
             string[] suffixes = { "B", "KB", "MB", "GB", "TB" };
@@ -205,20 +236,73 @@ namespace GetHardwareInfo
 
             return $"{formattedSize:N2} {suffixes[suffixIndex]}";
         }
+
+        private string GenerateReport()
+        {
+            StringBuilder sb = new StringBuilder();
+            sb.AppendLine("THÔNG TIN HỆ THỐNG");
+            sb.AppendLine("--------------------------------------------------");
+            sb.AppendLine($"Computer: {computerName} | User: {userName} | IP: {ipAddress}");
+            sb.AppendLine("");
+            sb.AppendLine("[Thông tin máy]");
+            sb.AppendLine($"Hãng SX: {lblManufacturerValue.Text}");
+            sb.AppendLine($"Model: {lblModelValue.Text}");
+            sb.AppendLine($"Service Tag: {lblServiceTagValue.Text}");
+            sb.AppendLine($"BIOS: {lblBIOSValue.Text}");
+            sb.AppendLine($"HĐH: {lblOSValue.Text}");
+            sb.AppendLine("");
+            sb.AppendLine("[Bộ xử lý (CPU)]");
+            sb.AppendLine($"{lblCPUName.Text}");
+            sb.AppendLine($"{lblCPUCores.Text}");
+            sb.AppendLine("");
+            sb.AppendLine("[Card đồ họa (GPU)]");
+            sb.AppendLine($"{lblGPUName.Text}");
+            sb.AppendLine("");
+            sb.AppendLine($"[{grpRAM.Text}]");
+            foreach (Control c in pnlRAMList.Controls)
+            {
+                sb.AppendLine(c.Text);
+            }
+            sb.AppendLine(lblRAMFree.Text);
+            sb.AppendLine("");
+            sb.AppendLine($"[{grpStorage.Text}]");
+            foreach (Control c in pnlStorageList.Controls)
+            {
+                sb.AppendLine(c.Text);
+            }
+            
+            return sb.ToString();
+        }
+
         private void button1_Click(object sender, EventArgs e)
         {
-
-            ProcessStartInfo processStartInfo = new ProcessStartInfo();
-            processStartInfo.FileName = "explorer.exe";
-            processStartInfo.Arguments = @"/select," + computerName + ".txt";
-            Process.Start(processStartInfo);
+            try
+            {
+                string report = GenerateReport();
+                string filePath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), computerName + ".txt");
+                File.WriteAllText(filePath, report);
+                
+                ProcessStartInfo processStartInfo = new ProcessStartInfo();
+                processStartInfo.FileName = "explorer.exe";
+                processStartInfo.Arguments = @"/select," + filePath;
+                Process.Start(processStartInfo);
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show("Error exporting file: " + ex.Message);
+            }
         }
 
         private void button2_Click(object sender, EventArgs e)
         {
-            richTextBox1.Focus();
-            richTextBox1.SelectAll();
-            richTextBox1.Copy();
+            string report = GenerateReport();
+            Clipboard.SetText(report);
+            MessageBox.Show("Đã copy thông tin vào Clipboard!", "Thông báo", MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void buttonClose_Click(object sender, EventArgs e)
+        {
+            this.Close();
         }
     }
 }
